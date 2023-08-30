@@ -3,3 +3,6 @@
 .DS_Store
 images/
 __pycache__/
+.idea
+*.pyc
+face.db
