@@ -13,5 +13,16 @@
             <input class="form-control" type="file" name="imagefile">
             <input class="btn btn-primary mt-3" type="submit" value="Predict Image">
         </form>
+
+        {% if student_list %}
+        <ul>
+            {% for student in student_list %}
+                <li><a href="/detail/{{ student.id }}/">{{ student.name }}</a></li>
+            {% endfor %}
+        </ul>
+
+        {% else %}
+            <p>No Students.</p>
+        {% endif %}
     </body>
 </html>
