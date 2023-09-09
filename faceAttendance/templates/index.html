@@ -14,10 +14,10 @@
             <input class="btn btn-primary mt-3" type="submit" value="Predict Image">
         </form>
 
-        {% if student_list %}
+        {% if course_list %}
         <ul>
-            {% for student in student_list %}
-                <li><a href="/detail/{{ student.id }}/">{{ student.name }}</a></li>
+            {% for course in course_list %}
+                <li><a href="/detail/{{ course.id }}/">{{ course.course_name }}</a></li>
             {% endfor %}
         </ul>
 
