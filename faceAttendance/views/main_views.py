@@ -13,30 +13,17 @@ from retinaface import RetinaFace
 
 
 bp = Blueprint('main', __name__, url_prefix='/')
+os.chdir(bp.root_path)
 
 @bp.route('/', methods=['GET'])
 def hello_world():
     course_list = Course.query.order_by(Course.id)
     return render_template('index.html', course_list = course_list)
 
-@bp.route('/', methods=['GET'])
-def my_view():
-    global course_id_to_query, image_size, model_path, model, image_dir_basepath, names
-    course_id_to_query = 0
-    image_size=160
-    model_path = url_for('static', filename='model/keras/model/facenet_keras.h5')
-    model = load_model(model_path)
-    image_dir_basepath = url_for('static', filename='lectures')
-    students_in_course = Student.query.join(CourseStudent, (CourseStudent.student_id == Student.id)).filter(CourseStudent.course_id == course_id_to_query).all()
-    names = [student.name for student in students_in_course]
-
-
-
-
 @bp.route('/', methods=['POST'])
-def predict():
+def predict_test():
     imagefile = request.files['imagefile']
-    image_path = "./images/" + imagefile.filename
+    image_path = url_for('static', filename= "images/lectures/"+ imagefile.filename)
     imagefile.save(image_path)
 
     return render_template('index.html')
@@ -46,11 +33,35 @@ def detail(course_id):
     course = Course.query.get(course_id)
     global course_id_to_query
     course_id_to_query= course_id
+    model_path = '../static/model/keras/model/facenet_keras.h5'
+    global model
+    model = load_model(model_path)
     return render_template('course.html', course = course, id=course_id_to_query)
 
 @bp.route('/detail/<int:course_id>/', methods=['POST'])
-def attendance_check():
-    return render_template('course.html')
+def predict(course_id):
+    global course
+    course = Course.query.get(course_id)
+
+    imagefile = request.files['imagefile']
+    test_image_path = '../static/images/lectures/' + course.course_name + '/' + imagefile.filename
+    imagefile.save(test_image_path)
+
+    global image_size, model_path, model
+    image_size=160
+
+    embs, labels, names = check_trained(course)
+    le, clf = test(embs, labels )
+
+    test_dirpath = '../static/images/lectures/' + course.course_name + '/'
+    test_filepaths = [os.path.join(test_dirpath, f) for f in os.listdir(test_dirpath)]
+
+    pred, pred_proba = infer(le, clf, test_filepaths)
+    result = list(np.unique(pred))
+
+    os.remove(test_image_path)
+
+    return render_template('course.html', course = course, id=course_id_to_query, result = result, len_result=len(result), total_students=len(names))
 
 @bp.route('/', methods=['POST'])
 def train():
@@ -60,15 +71,22 @@ def train():
 
     return render_template('index.html')
 
-def check_trained(course_name):
-    if os.path.isfile("../static/lectures/" + course_name +"/embedding/" + course_name):
-        embs=np.load(course_name + ".npy")
-        return None
+def check_trained(course):
+    students_in_course = Student.query.join(CourseStudent, (CourseStudent.student_id == Student.id)).filter(CourseStudent.course_id == course.id).all()
+    names = [student.id for student in students_in_course]
+
+    if os.path.isfile("../static/lectures/" + course.course_name +"/embedding/" + course.course_name):
+        embs=np.load('../static/lectures/'+course.course_name+'/embedding/np_embs.npy')
+        labels = []
+        with open('../static/lectures/'+course.course_name+'/embedding/labels.txt' , 'r') as file:
+            for line in file:
+                labels.append(line.strip())
+
+        return embs, labels, names
     else:
-        image_dir_basepath= image_dir_basepath + course_name
+        image_dir_basepath= '../static/lectures/' + course.course_name + '/images/'
         embs, labels = train(image_dir_basepath, names)
-        le, clf = test(embs, labels )
-        return None
+        return embs, labels, names
 
 def prewhiten(x):
     #print('prewhiten - x shape: ', x.shape)
@@ -147,7 +165,7 @@ def train(dir_basepath, names, max_num_img=10):
     labels = []
     embs = []
     for name in names:
-        dirpath = os.path.abspath(dir_basepath + name)
+        dirpath = os.path.abspath(dir_basepath + str(name))
         filepaths = [os.path.join(dirpath, f) for f in os.listdir(dirpath)][:max_num_img]
         embs_ = train_calc_embs(filepaths)
         labels.extend([name] * len(embs_))
@@ -155,6 +173,10 @@ def train(dir_basepath, names, max_num_img=10):
         #print(name)
 
     embs = np.concatenate(embs)
+    np.save('../static/lectures/'+course.course_name+'/embedding/np_embs.npy', embs)
+    with open('../static/lectures/'+course.course_name+'/embedding/labels.txt', 'w') as file:
+        for item in labels:
+            file.write(f'{item}\n')
     return embs, labels
 
 def test(embs, labels):

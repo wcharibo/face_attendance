@@ -20,9 +20,8 @@ def create_app():
     from .views import main_views
     app.register_blueprint(main_views.bp)
 
-
-    if __name__ == '__main__':
-        app.run(port=3000, debug=True)
-
     return app
 
+if __name__ == '__main__':
+    app = create_app()
+    app.run(port=3000, debug=True)

@@ -1,8 +1,10 @@
 #directory
 .vscode
 .DS_Store
-images/
 __pycache__/
 .idea
 *.pyc
 face.db
+*.npy
+*.txt
+!requirements.txt
