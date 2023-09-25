@@ -22,11 +22,21 @@ def hello_world():
 
 @bp.route('/', methods=['POST'])
 def predict_test():
-    imagefile = request.files['imagefile']
-    image_path = url_for('static', filename= "images/lectures/"+ imagefile.filename)
-    imagefile.save(image_path)
+    image_files = request.files.getlist('imagefile')  # 여러 개의 파일을 받습니다.
+
+    for imagefile in image_files:
+        if imagefile.filename != '':
+            image_path = url_for('static', filename="images/lectures/" + imagefile.filename)
+            imagefile.save(image_path)
 
     return render_template('index.html')
+
+# def predict_test():
+#     imagefile = request.files['imagefile']
+#     image_path = url_for('static', filename= "images/lectures/"+ imagefile.filename)
+#     imagefile.save(image_path)
+
+#     return render_template('index.html')
 
 @bp.route('/detail/<int:course_id>/', methods=['GET'])
 def detail(course_id):
@@ -43,11 +53,15 @@ def predict(course_id):
     global course
     course = Course.query.get(course_id)
 
-    imagefile = request.files['imagefile']
-    test_image_path = '../static/images/lectures/' + course.course_name + '/' + imagefile.filename
-    imagefile.save(test_image_path)
+    imagefiles = request.files.getlist('imagefile')
 
-    global image_size, model_path, model
+    for imagefile in imagefiles:
+        if imagefile.filename !='':
+            test_image_path = '../static/images/lectures/' + course.course_name + '/' + imagefile.filename
+            imagefile.save(test_image_path)
+
+
+    global image_size
     image_size=160
 
     embs, labels, names = check_trained(course)
@@ -59,7 +73,8 @@ def predict(course_id):
     pred, pred_proba = infer(le, clf, test_filepaths)
     result = list(np.unique(pred))
 
-    os.remove(test_image_path)
+    for test_image_path in test_filepaths:
+        os.remove(test_image_path)
 
     return render_template('course.html', course = course, id=course_id_to_query, result = result, len_result=len(result), total_students=len(names))
 
@@ -75,7 +90,7 @@ def check_trained(course):
     students_in_course = Student.query.join(CourseStudent, (CourseStudent.student_id == Student.id)).filter(CourseStudent.course_id == course.id).all()
     names = [student.id for student in students_in_course]
 
-    if os.path.isfile("../static/lectures/" + course.course_name +"/embedding/" + course.course_name):
+    if os.path.isfile("../static/lectures/" + course.course_name +"/embedding/np_embs.npy"):
         embs=np.load('../static/lectures/'+course.course_name+'/embedding/np_embs.npy')
         labels = []
         with open('../static/lectures/'+course.course_name+'/embedding/labels.txt' , 'r') as file:
