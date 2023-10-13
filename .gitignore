@@ -1,0 +1,10 @@
+#directory
+.vscode
+.DS_Store
+__pycache__/
+.idea
+*.pyc
+face.db
+*.npy
+*.txt
+!requirements.txt
