@@ -24,14 +24,14 @@ def load_logged_in_user():
         g.user = User.query.get(user_id)
 
 @bp.route('/', methods=['GET'])
-def hello_world():
+def index():
     if g.user:
         professor_id = g.user.id  # 현재 로그인한 교수님의 아이디를 가져옴
         course_list = Course.query.filter_by(professor_id=professor_id).order_by(Course.id).all()
         return render_template('index.html', course_list=course_list)
     else:
         print("hello")
-    return render_template('index.html')
+    return redirect(url_for('auth.login'))
 
 @bp.route('/detail/<int:course_id>/', methods=['GET'])
 def detail(course_id):

@@ -37,7 +37,8 @@ def login():
             error = "비밀번호가 올바르지 않습니다."
         if error is None:
             session.clear()
-            session['user.id'] = user.id
+            session['user_id'] = user.id
+            print('none')
             return redirect(url_for('main.index'))
         flash(error)
     return render_template('auth/login.html', form= form)
