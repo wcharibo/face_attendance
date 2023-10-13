@@ -31,31 +31,22 @@ class Course(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     course_name = db.Column(db.String(200), nullable=False)
     image_path = db.Column(db.String(255), nullable=False)  # 이미지 경로를 저장할 수 있는 열
-    professor_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # 교수님과의 관계를 나타내는 외래 키
+    professor_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)  # 교수님과의 관계를 나타내는 외래 키
 
-    user = db.relationship('User', backref=db.backref('courses', lazy=True))
+    students = db.relationship('Student', secondary='course_student', backref=db.backref('courses', lazy=True))
 
 # 수업-학생 매핑 테이블
 class CourseStudent(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
-    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
-
-    course = db.relationship('Course', backref=db.backref('students', lazy=True))
-    student = db.relationship('Student', backref=db.backref('courses', lazy=True))
-
-# 학생과 출결 체크 간의 관계를 다루는 연결 테이블
-student_attendance = db.Table(
-    'student_attendance',
-    db.Column('student_id', db.Integer, db.ForeignKey('student.id'), primary_key=True),
-    db.Column('attendance_check_id', db.Integer, db.ForeignKey('attendance_check.id'), primary_key=True),
-)
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id', ondelete='CASCADE'), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id', ondelete='CASCADE'), nullable=False)
 
 class AttendanceCheck(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
-    check_date = db.Column(db.Date, nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id', ondelete='CASCADE'), nullable=False)
+    student_id = db.Column('student_id', db.Integer, db.ForeignKey('student.id', ondelete='CASCADE'), nullable=False)
+    check_week = db.Column(db.Integer, nullable=False)
     result = db.Column(db.Boolean, nullable=False)
 
-    course = db.relationship('Course', backref=db.backref('attendance_checks', lazy=True))
-    students = db.relationship('Student', secondary=student_attendance, lazy='subquery', backref=db.backref('attendance_checks', lazy=True))
+    course = db.relationship('Course', backref=db.backref('courses', lazy=True))
+    student = db.relationship('Student',  backref=db.backref('students', lazy=True))

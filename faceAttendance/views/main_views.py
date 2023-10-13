@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template , request, url_for, session, redirect, g
+from flask import Blueprint, render_template , request, url_for, session, redirect, g, flash
 from faceAttendance.models import Student, Course, CourseStudent, User
 
 #for AI
@@ -35,9 +35,13 @@ def index():
 
 @bp.route('/detail/<int:course_id>/', methods=['GET'])
 def detail(course_id):
-    course = Course.query.get(course_id)
-    global course_id_to_query
-    course_id_to_query= course_id
+    if g.user:
+        course = Course.query.get(course_id)
+        global course_id_to_query
+        course_id_to_query= course_id
+    else:
+        flash('로그인 후 사용해주세요')
+        return redirect(url_for('auth.login'))
     # model_path = '../static/model/keras/model/facenet_keras.h5'
     # global model
     # model = load_model(model_path)

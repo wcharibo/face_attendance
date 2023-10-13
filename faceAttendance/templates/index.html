@@ -20,10 +20,14 @@
 
 
         {% else %}
-            <p>No Students.</p>
+            <p>No Courses.</p>
         {% endif %}
         {% else %}
         <a class="nav-link" href="{{url_for('auth.login')}}">Log in</a>
+        {% endif %}
+
+        {% if g.user %}
+        <a href="{{url_for('auth.logout') }}">{{g.user.username}} (로그아웃) </a>
         {% endif %}
 
 

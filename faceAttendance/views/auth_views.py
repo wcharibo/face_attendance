@@ -14,7 +14,7 @@ def signup():
     if request.method =='POST' and form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
         if not user:
-            user = User(username=form.username.data,
+            user = User(id=form.userid.data, username=form.username.data,
                   password=generate_password_hash(form.password1.data),
                   email=form.email.data)
             db.session.add(user)
