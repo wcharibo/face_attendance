@@ -7,15 +7,33 @@
     </head>
 
     <body>
-        <h1 class="text-center">Course {{course.course_name}}</h1>
+        <h1 class="text-center">{{course.course_name}}</h1>
 
-        <form class="p-3 text-center" action="/detail/{{ course.id }}/", method="post" enctype="multipart/form-data">
+        <form class="p-3 text-center" action="/detail/{{ course.id }}/" method="post" enctype="multipart/form-data">
+            <label for="week">주차 선택:</label>
+            <select id="week" name="week">
+                <option value="1">1주차</option>
+                <option value="2">2주차</option>
+                <option value="3">3주차</option>
+                <option value="4">4주차</option>
+                <option value="5">5주차</option>
+                <option value="6">6주차</option>
+                <option value="7">7주차</option>
+                <option value="8">8주차</option>
+                <option value="9">9주차</option>
+                <option value="10">10주차</option>
+                <option value="11">11주차</option>
+                <option value="12">12주차</option>
+                <option value="13">13주차</option>
+                <option value="14">14주차</option>
+                <option value="15">15주차</option>
+            </select>
             <input class="form-control" type="file" name="imagefile" multiple>
             <input class="btn btn-primary mt-3" type="submit" value="Predict Image">
         </form>
 
         <h1>{{course.course_name}}</h1>
-        <h2>{{id}}</h2>
+        <h2>{{course.id}}</h2>
 
         {% if result %}
         <ul>
