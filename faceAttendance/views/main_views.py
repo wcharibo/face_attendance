@@ -5,6 +5,7 @@ from faceAttendance import db
 
 #for AI
 import os
+import shutil
 import numpy as np
 import cv2
 from sklearn.svm import SVC
@@ -38,29 +39,37 @@ def index():#로그인하면 강의모록 보여주는 페이지
 @bp.route('/course/add/', methods=['GET', 'POST'])#강의를 추가하는 페이지
 def courseAdd():
     form = CourseCreateForm()
+    file_path = '../static/lectures/'
+    students = request.form.getlist('students')
     if request.method == 'POST':
+        for student_form in students:
+            stu_check=Student.query.filter_by(id=student_form).first()
+            if not stu_check:#틀린 학생번호가 적힌 경우 넘어감
+                flash(student_form+'잘못된 학번입니다.')
+                return render_template('courseAdd.html', form=form)
         course=Course.query.filter_by(course_name=form.coursename.data).first()
         if not course:
+            os.makedirs(file_path + str(form.coursename.data)+'/embedding') #디렉토리 생성
+            os.mkdir('../static/images/lectures'+ str(form.coursename.data))
             course = Course(course_name=form.coursename.data, image_path='1',professor_id=g.user.id)
             db.session.add(course)
             db.session.commit()
             course=Course.query.filter_by(course_name=form.coursename.data).first()
-            students = request.form.getlist('students')
             for student_form in students:
                 stu_check=Student.query.filter_by(id=student_form).first()
-                if not stu_check:#틀린 학생번호가 적힌 경우 넘어감
-                    flash(student_form+'잘못된 학번입니다.')
-                    temp=False
-                    break
-                if temp==False:
-                    break
+                #DB.courseStudent에 추가
                 courseStudent=CourseStudent(course_id=course.id, student_id=student_form)
                 db.session.add(courseStudent)
+                #DB.AttendanceCheck에 추가
                 for i in range(15):
                     attendance=AttendanceCheck(course_id=course.id, student_id=student_form, check_week=i+1, result=False)
                     db.session.add(attendance)
-            if temp==False:
-                return render_template('courseAdd.html', form=form)
+                #학생 디렉토리 추가
+                os.makedirs(file_path + course.course_name + '/images/' + str(stu_check.id))
+                #학생 이미지 저장
+                image_source_path = '../static/images/students/' + str(stu_check.id) + '.jpg'
+                image_destination_path = file_path + course.course_name + '/images/' + str(stu_check.id) + '/'
+                shutil.copy(image_source_path, image_destination_path)
             db.session.commit()
             return redirect(url_for('main.index'))
         else:
@@ -112,7 +121,8 @@ def predict(course_id):
             student_id=student_id,
             check_week=week_number  # 어떤 주차의 출석을 업데이트할지 지정
         ).first()
-
+        if attendance_check:
+            attendance_check.result = True
         # 만약 해당 주차의 출석 정보가 없으면 새로운 레코드를 생성
         # if attendance_check is None:
         #     attendance_check = AttendanceCheck(
@@ -124,8 +134,7 @@ def predict(course_id):
         #     db.session.add(attendance_check)
         # else:
             # 이미 해당 주차의 출석 정보가 있는 경우, 결과를 업데이트
-        attendance_check.result = True  # 얼굴 인식 결과가 True 또는 False인지에 따라 업데이트할 값 지정
-
+          # 얼굴 인식 결과가 True 또는 False인지에 따라 업데이트할 값 지정
     db.session.commit()  # 변경사항을 DB에 저장
 
     for test_image_path in test_filepaths:
