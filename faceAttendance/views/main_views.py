@@ -1,8 +1,11 @@
 from flask import Blueprint, render_template , request, url_for, session, redirect, g, flash
-from faceAttendance.models import Student, Course, CourseStudent, User
+from faceAttendance.models import Student, Course, CourseStudent, User, AttendanceCheck
+from faceAttendance.forms import CourseCreateForm
+from faceAttendance import db
 
 #for AI
 import os
+import shutil
 import numpy as np
 import cv2
 from sklearn.svm import SVC
@@ -24,28 +27,66 @@ def load_logged_in_user():
         g.user = User.query.get(user_id)
 
 @bp.route('/', methods=['GET'])
-def index():
-    if g.user:
+def index():#로그인하면 강의모록 보여주는 페이지
+    if g.user:  #로그인되어있으면 강의 몰록 출력
         professor_id = g.user.id  # 현재 로그인한 교수님의 아이디를 가져옴
         course_list = Course.query.filter_by(professor_id=professor_id).order_by(Course.id).all()
         return render_template('index.html', course_list=course_list)
     else:
         print("hello")
-    return redirect(url_for('auth.login'))
+    return redirect(url_for('auth.login'))  #로그인 안되어있으면 로그인 페이지로 이동
 
-@bp.route('/detail/<int:course_id>/', methods=['GET'])
+@bp.route('/course/add/', methods=['GET', 'POST'])#강의를 추가하는 페이지
+def courseAdd():
+    form = CourseCreateForm()
+    file_path = '../static/lectures/'
+    students = request.form.getlist('students')
+    if request.method == 'POST':
+        for student_form in students:
+            stu_check=Student.query.filter_by(id=student_form).first()
+            if not stu_check:#틀린 학생번호가 적힌 경우 넘어감
+                flash(student_form+'잘못된 학번입니다.')
+                return render_template('courseAdd.html', form=form)
+        course=Course.query.filter_by(course_name=form.coursename.data).first()
+        if not course:
+            os.makedirs(file_path + str(form.coursename.data)+'/embedding') #디렉토리 생성
+            os.mkdir('../static/images/lectures'+ str(form.coursename.data))
+            course = Course(course_name=form.coursename.data, image_path='1',professor_id=g.user.id)
+            db.session.add(course)
+            db.session.commit()
+            course=Course.query.filter_by(course_name=form.coursename.data).first()
+            for student_form in students:
+                stu_check=Student.query.filter_by(id=student_form).first()
+                #DB.courseStudent에 추가
+                courseStudent=CourseStudent(course_id=course.id, student_id=student_form)
+                db.session.add(courseStudent)
+                #DB.AttendanceCheck에 추가
+                for i in range(15):
+                    attendance=AttendanceCheck(course_id=course.id, student_id=student_form, check_week=i+1, result=False)
+                    db.session.add(attendance)
+                #학생 디렉토리 추가
+                os.makedirs(file_path + course.course_name + '/images/' + str(stu_check.id))
+                #학생 이미지 저장
+                image_source_path = '../static/images/students/' + str(stu_check.id) + '.jpg'
+                image_destination_path = file_path + course.course_name + '/images/' + str(stu_check.id) + '/'
+                shutil.copy(image_source_path, image_destination_path)
+            db.session.commit()
+            return redirect(url_for('main.index'))
+        else:
+            flash(form.coursename.data+'강의는 이미 존재하는 강의입니다.')
+    return render_template('courseAdd.html', form=form)
+
+@bp.route('/detail/<int:course_id>/', methods=['GET'])#
 def detail(course_id):
     if g.user:
         course = Course.query.get(course_id)
-        global course_id_to_query
-        course_id_to_query= course_id
     else:
         flash('로그인 후 사용해주세요')
         return redirect(url_for('auth.login'))
-    # model_path = '../static/model/keras/model/facenet_keras.h5'
-    # global model
-    # model = load_model(model_path)
-    return render_template('course.html', course = course, id=course_id_to_query)
+    model_path = '../static/model/keras/model/facenet_keras.h5'
+    global model
+    model = load_model(model_path)
+    return render_template('course.html', course = course)
 
 @bp.route('/detail/<int:course_id>/', methods=['POST'])
 def predict(course_id):
@@ -53,6 +94,7 @@ def predict(course_id):
     course = Course.query.get(course_id)
 
     imagefiles = request.files.getlist('imagefile')
+    week_number = int(request.form['week'])
 
     for imagefile in imagefiles:
         if imagefile.filename !='':
@@ -72,12 +114,35 @@ def predict(course_id):
     pred, pred_proba = infer(le, clf, test_filepaths)
     result = list(np.unique(pred))
 
+    for student_id in result:
+        # 해당 주차의 출석 정보가 이미 DB에 있는지 확인
+        attendance_check = AttendanceCheck.query.filter_by(
+            course_id=course.id,
+            student_id=student_id,
+            check_week=week_number  # 어떤 주차의 출석을 업데이트할지 지정
+        ).first()
+        if attendance_check:
+            attendance_check.result = True
+        # 만약 해당 주차의 출석 정보가 없으면 새로운 레코드를 생성
+        # if attendance_check is None:
+        #     attendance_check = AttendanceCheck(
+        #         course_id=course.id,
+        #         student_id=student_id,
+        #         check_week=week_number,
+        #         result=True  # 얼굴 인식 결과가 True 또는 False인지에 따라 저장할 값 지정
+        #     )
+        #     db.session.add(attendance_check)
+        # else:
+            # 이미 해당 주차의 출석 정보가 있는 경우, 결과를 업데이트
+          # 얼굴 인식 결과가 True 또는 False인지에 따라 업데이트할 값 지정
+    db.session.commit()  # 변경사항을 DB에 저장
+
     for test_image_path in test_filepaths:
         os.remove(test_image_path)
 
-    return render_template('course.html', course = course, id=course_id_to_query, result = result, len_result=len(result), total_students=len(names))
+    return render_template('course.html', course = course, result = result, len_result=len(result), total_students=len(names))
 
-# def check_trained(course):
+def check_trained(course):
     students_in_course = Student.query.join(CourseStudent, (CourseStudent.student_id == Student.id)).filter(CourseStudent.course_id == course.id).all()
     names = [student.id for student in students_in_course]
 

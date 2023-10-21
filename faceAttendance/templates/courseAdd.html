@@ -1,0 +1,56 @@
+{% block content %}
+
+<div class="container my-3">
+  <form method="post" class="post-form">
+      {{ form.csrf_token }}
+      {% include "form_errors.html" %}
+      <div class="form-group">
+          <label for="coursename">강의 이름</label>
+          <input type="text" class="form-control" name="coursename" id="coursename"
+                 value="{{ form.coursename.data or ''}}">
+      </div>
+      <div class="form-group" id="students-container">
+          <label for="students">학생 정보</label>
+          {% for student_form in form.students %}
+          <div class="student-row">
+              <input type="integer" class="form-control student-input" name="students" id="student" value="{{ student_form.form.studentid.data or '' }}">
+          </div>
+          {% endfor %}
+      </div>
+      <button type="button" class="btn btn-success" id="add-student">학생 추가</button>
+      <button type="submit" class="btn btn-primary">강의 개설</button>
+  </form>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var studentsContainer = document.getElementById('students-container');
+    var addStudentButton = document.getElementById('add-student');
+
+    addStudentButton.addEventListener('click', function() {
+        var studentRow = document.createElement('div');
+        studentRow.classList.add('student-row');
+        var inputField = document.createElement('input');
+        inputField.type = 'integer';
+        inputField.classList.add('form-control', 'student-input');
+        inputField.name = 'students';
+        inputField.required = true;
+        var removeButton = document.createElement('button');
+        removeButton.type = 'button';
+        removeButton.classList.add('btn', 'btn-danger', 'remove-student');
+        removeButton.textContent = '삭제';
+
+        studentRow.appendChild(inputField);
+        studentRow.appendChild(removeButton);
+        studentsContainer.appendChild(studentRow);
+
+        removeButton.addEventListener('click', function() {
+            studentsContainer.removeChild(studentRow);
+        });
+    });
+});
+</script>
+
+<a class="nav-link" href="{{url_for('main.index')}}">강의 추가 취소</a>
+{% endblock %}
+
