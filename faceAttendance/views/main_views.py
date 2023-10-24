@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template , request, url_for, session, redirect, g, flash
+from flask import Blueprint, render_template , request, url_for, session, redirect, g, flash, jsonify
 from faceAttendance.models import Student, Course, CourseStudent, User, AttendanceCheck
 from faceAttendance.forms import CourseCreateForm
 from faceAttendance import db
@@ -86,7 +86,67 @@ def detail(course_id):
     model_path = '../static/model/keras/model/facenet_keras.h5'
     global model
     model = load_model(model_path)
-    return render_template('course.html', course = course)
+
+    attendance_data = []
+
+    students = Student.query.join(CourseStudent, (CourseStudent.student_id == Student.id)).filter(CourseStudent.course_id == course.id).all()
+
+    for student in students:
+        attendance_row = {
+            'id': student.id,
+            'name': student.name,
+            'attendance': []
+        }
+        for week in range(1, 16):
+            attendance_check = AttendanceCheck.query.filter_by(student_id=student.id, course_id=course.id,check_week=week).first()
+            if attendance_check:
+                attendance_row['attendance'].append(True if attendance_check.result else False)
+        attendance_data.append(attendance_row)
+
+    return render_template('course.html', course = course, attendance_data = attendance_data)
+
+@bp.route('/update_attendance', methods=['POST'])
+def update_attendance():
+    course_id = request.form.get('courseId')
+    student_id = request.form.get('studentId')
+    week = request.form.get('week')
+    selected_status = request.form.get('selectedStatus')
+
+    if selected_status.lower() =='true':
+        status=True
+    elif selected_status.lower() =='false':
+        status=False
+    else:
+        print('no status')
+
+    attendance_check = AttendanceCheck.query.filter_by(
+             course_id=course_id,
+             student_id=student_id,
+             check_week=week  # 어떤 주차의 출석을 업데이트할지 지정
+         ).first()
+    if attendance_check:
+            attendance_check.result = status
+    db.session.commit()
+
+    # 새로운 버튼의 HTML을 생성하여 응답으로 보냅니다.
+    attendance_check = AttendanceCheck.query.filter_by(
+             course_id=course_id,
+             student_id=student_id,
+             check_week=week  # 어떤 주차의 출석을 업데이트할지 지정
+         ).first()
+    if attendance_check.result==True:
+        new_select_html = f'<select class="form-control" ' \
+                  f'onchange="updateAttendance({course_id}, {student_id}, {week}, this.value)">' + \
+                  '<option value=True selected>출석</option>' + \
+                  '<option value=False>결석</option>' + \
+                  '</select>'
+    elif attendance_check.result==False:
+        new_select_html = f'<select class="form-control" ' \
+                  f'onchange="updateAttendance({course_id}, {student_id}, {week}, this.value)">' + \
+                  '<option value=True>출석</option>' + \
+                  '<option value=False selected >결석</option>' + \
+                  '</select>'
+    return jsonify({'newSelectHtml': new_select_html})
 
 @bp.route('/detail/<int:course_id>/', methods=['POST'])
 def predict(course_id):
@@ -133,14 +193,29 @@ def predict(course_id):
         #     )
         #     db.session.add(attendance_check)
         # else:
-            # 이미 해당 주차의 출석 정보가 있는 경우, 결과를 업데이트
-          # 얼굴 인식 결과가 True 또는 False인지에 따라 업데이트할 값 지정
+        #     이미 해당 주차의 출석 정보가 있는 경우, 결과를 업데이트
+        #   얼굴 인식 결과가 True 또는 False인지에 따라 업데이트할 값 지정
     db.session.commit()  # 변경사항을 DB에 저장
+
+    attendance_data = []
+    students = Student.query.join(CourseStudent, (CourseStudent.student_id == Student.id)).filter(CourseStudent.course_id == course.id).all()
+
+    for student in students:
+        attendance_row = {
+            'id': student.id,
+            'name': student.name,
+            'attendance': []
+        }
+        for week in range(1, 16):
+            attendance_check = AttendanceCheck.query.filter_by(student_id=student.id, course_id=course.id,check_week=week).first()
+            if attendance_check:
+                attendance_row['attendance'].append(True if attendance_check.result else False)
+        attendance_data.append(attendance_row)
 
     for test_image_path in test_filepaths:
         os.remove(test_image_path)
 
-    return render_template('course.html', course = course, result = result, len_result=len(result), total_students=len(names))
+    return render_template('course.html', course = course, result = result, len_result=len(result), total_students=len(names),attendance_data=attendance_data)
 
 def check_trained(course):
     students_in_course = Student.query.join(CourseStudent, (CourseStudent.student_id == Student.id)).filter(CourseStudent.course_id == course.id).all()

@@ -4,9 +4,35 @@
         <title>Attendance Check-{{course.course_name}}</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     </head>
 
     <body>
+        <script>
+            function updateAttendance(courseId, studentId, week, selectedStatus) {
+                console.log(selectedStatus)
+                $.ajax({
+                    type: 'POST',
+                    url: '/update_attendance',  // 서버의 엔드포인트 URL을 지정합니다. 예시로 '/update_attendance'라 가정합니다.
+                    data: {
+                        courseId: courseId,
+                        studentId: studentId,
+                        week: week,
+                        selectedStatus: selectedStatus
+                    },
+                    success: function(response) {
+                        // 서버로부터 받은 응답을 기반으로 표시를 업데이트합니다.
+                        var cellId = `cell-${studentId}-${week}`;
+                        var cell = document.getElementById(cellId);
+                        cell.innerHTML = response.newSelectHtml;  // 서버에서 전달한 새로운 버튼 HTML을 사용하여 셀을 업데이트합니다.
+                    },
+                    error: function(error) {
+                        console.log('Error:', error);
+                    }
+                });
+                }
+
+        </script>
         <h1 class="text-center">{{course.course_name}}</h1>
 
         <form class="p-3 text-center" action="/detail/{{ course.id }}/" method="post" enctype="multipart/form-data">
@@ -32,9 +58,6 @@
             <input class="btn btn-primary mt-3" type="submit" value="Predict Image">
         </form>
 
-        <h1>{{course.course_name}}</h1>
-        <h2>{{course.id}}</h2>
-
         {% if result %}
         <ul>
             {% for name in reuslt %}
@@ -45,9 +68,34 @@
             <h2>{{total_students-len_result}} students abscent</h2>
         </ul>
 
-        {% else %}
-            <p>No Students.</p>
         {% endif %}
-    </body>
 
+        <table class="table">
+            <thead>
+              <tr>
+                <th>학번</th>
+                <th>이름</th>
+                {% for week in range(1, 16) %}
+                  <th>{{ week }}주차 </th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in attendance_data %}
+                <tr>
+                  <td>{{ row.id }}</td>
+                  <td>{{ row.name }}</td>
+                  {% for week, status in row.attendance | enumerate(start=1) %}
+                  <td id="cell-{{ row.id }}-{{ week }}">
+                    <select class="form-control" onchange="updateAttendance({{ course.id }}, {{ row.id }}, {{ week }}, this.value)">
+                      <option value=True {% if status == True %} selected {% endif %}>출석</option>
+                      <option value=False {% if status == False %} selected {% endif %}>결석</option>
+                    </select>
+                  </td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+    </body>
 </html>
