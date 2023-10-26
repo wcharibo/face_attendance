@@ -55,7 +55,7 @@
                 <option value="15">15주차</option>
             </select>
             <input class="form-control" type="file" name="imagefile" multiple>
-            <input class="btn btn-primary mt-3" type="submit" value="Predict Image">
+            <input class="btn btn-primary mt-3" type="submit" value="출석 확인">
         </form>
 
         {% if result %}
@@ -87,7 +87,7 @@
                   <td>{{ row.name }}</td>
                   {% for week, status in row.attendance | enumerate(start=1) %}
                   <td id="cell-{{ row.id }}-{{ week }}">
-                    <select class="form-control" onchange="updateAttendance({{ course.id }}, {{ row.id }}, {{ week }}, this.value)">
+                    <select class="form-control" onchange="updateAttendance('{{ course.id }}', '{{ row.id }}', '{{ week }}', this.value)">
                       <option value=True {% if status == True %} selected {% endif %}>출석</option>
                       <option value=False {% if status == False %} selected {% endif %}>결석</option>
                     </select>
