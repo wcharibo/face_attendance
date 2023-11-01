@@ -1,5 +1,5 @@
-<!DOCTYPE html>
-<html>
+{% extends 'base.html' %}
+{% block content %}
     <head>
         <title>Attendance Check-{{course.course_name}}</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
@@ -31,7 +31,17 @@
                     }
                 });
                 }
+                document.addEventListener('DOMContentLoaded', function() {
+    var buttons = document.querySelectorAll('.btn-outline-success');
+    var selectElement = document.getElementById('week');
 
+    buttons.forEach(function(button, index) {
+        button.addEventListener('click', function() {
+            var week = button.value;
+            selectElement.value = week; // 클릭된 버튼의 값을 사용하여 select 요소의 value 변경
+        });
+    });
+});
         </script>
         <h1 class="text-center">{{course.course_name}}</h1>
 
@@ -70,24 +80,24 @@
 
         {% endif %}
 
-        <table class="table">
+        <table class="table table-success table-hover mx-auto table-bordered">
             <thead>
-              <tr>
-                <th>학번</th>
-                <th>이름</th>
+              <tr class="text-center">
+                <th scope="col">학번</th>
+                <th scope="col">이름</th>
                 {% for week in range(1, 16) %}
-                  <th>{{ week }}주차 </th>
+                  <th><button class="btn btn-outline-success" value="{{week}}">{{ week }}주</button> </th>
                 {% endfor %}
               </tr>
             </thead>
             <tbody>
               {% for row in attendance_data %}
-                <tr>
+                <tr class="text-center">
                   <td>{{ row.id }}</td>
                   <td>{{ row.name }}</td>
                   {% for week, status in row.attendance | enumerate(start=1) %}
                   <td id="cell-{{ row.id }}-{{ week }}">
-                    <select class="form-control" onchange="updateAttendance('{{ course.id }}', '{{ row.id }}', '{{ week }}', this.value)">
+                    <select class="form-control form-select-sm" onchange="updateAttendance('{{ course.id }}', '{{ row.id }}', '{{ week }}', this.value)">
                       <option value=True {% if status == True %} selected {% endif %}>출석</option>
                       <option value=False {% if status == False %} selected {% endif %}>결석</option>
                     </select>
@@ -96,6 +106,6 @@
                 </tr>
               {% endfor %}
             </tbody>
-          </table>
+        </table>
     </body>
-</html>
+{% endblock %}

@@ -135,13 +135,13 @@ def update_attendance():
              check_week=week  # 어떤 주차의 출석을 업데이트할지 지정
          ).first()
     if attendance_check.result==True:
-        new_select_html = f'<select class="form-control" ' \
+        new_select_html = f'<select class="form-control form-select-sm" ' \
                   f'onchange="updateAttendance({course_id}, {student_id}, {week}, this.value)">' + \
                   '<option value=True selected>출석</option>' + \
                   '<option value=False>결석</option>' + \
                   '</select>'
     elif attendance_check.result==False:
-        new_select_html = f'<select class="form-control" ' \
+        new_select_html = f'<select class="form-control form-select-sm" ' \
                   f'onchange="updateAttendance({course_id}, {student_id}, {week}, this.value)">' + \
                   '<option value=True>출석</option>' + \
                   '<option value=False selected >결석</option>' + \

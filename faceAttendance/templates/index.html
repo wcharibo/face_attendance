@@ -1,35 +1,26 @@
-<!DOCTYPE html>
-<html>
-    <head>
-        <title>Face Attendance</title>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
-    </head>
-
-    <body>
-        <h1 class="text-center">Course List</h1>
+{% extends 'base.html' %}
+{% block content %}
+<body>
+    <div class="container my-5"> <!-- 컨테이너 클래스 추가 -->
+        <h1 class="text-center mb-4">Course List</h1> <!-- 하단 여백 추가 -->
 
         {% if g.user %}
         {% if course_list %}
-        <ul>
+        <ul class="list-group mb-4"> <!-- 리스트 그룹 클래스 추가 -->
             {% for course in course_list %}
-                <li><a href="/detail/{{ course.id }}/">{{ course.course_name }}</a></li>
+                <li class="list-group-item"> <!-- 리스트 그룹 아이템 클래스 추가 -->
+                    <a class="btn btn-outline-primary" href="/detail/{{ course.id }}/">{{ course.course_name }}</a>
+                </li>
             {% endfor %}
         </ul>
-
-
-
         {% else %}
-            <p>No Courses.</p>
+            <p class="mb-4">No Courses.</p> <!-- 하단 여백 추가 -->
         {% endif %}
         {% endif %}
 
-        <a class="nav-link" href="{{url_for('main.courseAdd')}}">강좌 추가</a>
-
-        {% if g.user %}
-        <a href="{{url_for('auth.logout') }}">{{g.user.username}} (로그아웃) </a>
-        {% endif %}
-
-
-    </body>
-</html>
+        <div class="custom-button mb-4"> <!-- 하단 여백 추가 -->
+            <a class="btn btn-primary" href="{{url_for('main.courseAdd')}}">강좌 추가</a>
+        </div>
+    </div>
+</body>
+{% endblock %}

@@ -1,3 +1,4 @@
+{% extends 'base.html' %}
 {% block content %}
 
 <div class="container my-3">
@@ -19,6 +20,7 @@
       </div>
       <button type="button" class="btn btn-success" id="add-student">학생 추가</button>
       <button type="submit" class="btn btn-primary">강의 개설</button>
+      <a type='button' class="btn btn-danger" href="{{url_for('main.index')}}">강의 추가 취소</a>
   </form>
 </div>
 
@@ -50,7 +52,5 @@
     });
 });
 </script>
-
-<a class="nav-link" href="{{url_for('main.index')}}">강의 추가 취소</a>
 {% endblock %}
 
