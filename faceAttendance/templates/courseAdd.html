@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
-
+<body>
 <div class="container my-3">
   <form method="post" class="post-form">
       {{ form.csrf_token }}
@@ -52,5 +52,6 @@
     });
 });
 </script>
+</body>
 {% endblock %}
 

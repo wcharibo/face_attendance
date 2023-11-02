@@ -99,7 +99,7 @@
                   <td id="cell-{{ row.id }}-{{ week }}">
                     <select class="form-control form-select-sm" onchange="updateAttendance('{{ course.id }}', '{{ row.id }}', '{{ week }}', this.value)">
                       <option value=True {% if status == True %} selected {% endif %}>출석</option>
-                      <option value=False {% if status == False %} selected {% endif %}>결석</option>
+                      <option value=False {% if status == False %} selected {% endif %}>-</option>
                     </select>
                   </td>
                   {% endfor %}
